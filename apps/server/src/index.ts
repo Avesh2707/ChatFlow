@@ -2,10 +2,12 @@ import http from "http";
 import { createApp } from "./app";
 import { env } from "./config/env";
 import { prisma } from "./db";
+import { initSocketServer, closeSocketServer } from "./socket";
 
 const startServer = () => {
   const app = createApp();
   const server = http.createServer(app);
+  initSocketServer(server);
 
   server.listen(env.PORT, () => {
     console.log(`[ChatFlow Server] Running in ${env.NODE_ENV} mode`);
@@ -15,6 +17,12 @@ const startServer = () => {
 
   const handleShutdown = async (signal: string) => {
     console.log(`\n[ChatFlow Server] Received ${signal}. Gracefully shutting down...`);
+    try {
+      await closeSocketServer();
+      console.log("[ChatFlow Server] Socket.IO server closed.");
+    } catch (err) {
+      console.error("[ChatFlow Server] Error closing Socket.IO:", err);
+    }
     try {
       await prisma.$disconnect();
     } catch (err) {

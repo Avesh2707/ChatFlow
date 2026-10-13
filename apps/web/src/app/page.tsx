@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { connectSocket, disconnectSocket, getSocket } from "../lib/socket";
 
 interface ServiceStatus {
   status: "idle" | "loading" | "online" | "offline";
@@ -27,6 +28,7 @@ export default function Home() {
   const [serverStatus, setServerStatus] = useState<ServiceStatus>({ status: "loading" });
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -81,6 +83,8 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
+      disconnectSocket();
+      setSocketConnected(false);
       await fetch(`${apiUrl}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
@@ -97,6 +101,30 @@ export default function Home() {
     checkAuth();
   }, []);
 
+  // Manage socket connection lifecycle based on authentication status
+  useEffect(() => {
+    if (currentUser) {
+      const socket = connectSocket();
+      const onConnect = () => setSocketConnected(true);
+      const onDisconnect = () => setSocketConnected(false);
+
+      socket.on("connect", onConnect);
+      socket.on("disconnect", onDisconnect);
+
+      if (socket.connected) {
+        setSocketConnected(true);
+      }
+
+      return () => {
+        socket.off("connect", onConnect);
+        socket.off("disconnect", onDisconnect);
+      };
+    } else {
+      disconnectSocket();
+      setSocketConnected(false);
+    }
+  }, [currentUser]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 sm:p-12 font-sans selection:bg-indigo-500 selection:text-white">
       <div className="max-w-4xl w-full mx-auto space-y-10">
@@ -109,7 +137,7 @@ export default function Home() {
                 ChatFlow
               </h1>
               <span className="text-xs uppercase font-semibold px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">
-                Phase 3 (Auth Ready)
+                Phase 4 (Socket.IO Active)
               </span>
             </div>
             <p className="text-sm text-slate-400 mt-1">
@@ -120,7 +148,15 @@ export default function Home() {
             {!authLoading && currentUser ? (
               <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5">
                 <div className="text-right">
-                  <div className="text-xs font-semibold text-slate-200">{currentUser.name}</div>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <span className="text-xs font-semibold text-slate-200">{currentUser.name}</span>
+                    <span
+                      title={socketConnected ? "Socket connected" : "Socket connecting..."}
+                      className={`w-2 h-2 rounded-full ${
+                        socketConnected ? "bg-emerald-400" : "bg-amber-400 animate-pulse"
+                      }`}
+                    />
+                  </div>
                   <div className="text-[10px] text-slate-400">{currentUser.email}</div>
                 </div>
                 <button
