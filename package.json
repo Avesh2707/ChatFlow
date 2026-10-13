@@ -1,0 +1,19 @@
+{
+  "name": "chatflow-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces",
+    "dev:web": "npm run dev --workspace=@chatflow/web",
+    "dev:server": "npm run dev --workspace=@chatflow/server",
+    "build": "npm run build --workspaces --if-present",
+    "build:web": "npm run build --workspace=@chatflow/web",
+    "build:server": "npm run build --workspace=@chatflow/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck:web": "npm run typecheck --workspace=@chatflow/web",
+    "typecheck:server": "npm run typecheck --workspace=@chatflow/server"
+  }
+}
