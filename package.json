@@ -14,6 +14,10 @@
     "build:server": "npm run build --workspace=@chatflow/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "typecheck:web": "npm run typecheck --workspace=@chatflow/web",
-    "typecheck:server": "npm run typecheck --workspace=@chatflow/server"
+    "typecheck:server": "npm run typecheck --workspace=@chatflow/server",
+    "prisma:generate": "npm run prisma:generate --workspace=@chatflow/server",
+    "prisma:migrate": "npm run prisma:migrate --workspace=@chatflow/server",
+    "prisma:deploy": "npm run prisma:deploy --workspace=@chatflow/server",
+    "prisma:studio": "npm run prisma:studio --workspace=@chatflow/server"
   }
 }

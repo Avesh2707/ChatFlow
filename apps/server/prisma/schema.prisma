@@ -1,0 +1,75 @@
+// Prisma schema for ChatFlow
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String                    @id @default(uuid())
+  name         String
+  email        String                    @unique
+  passwordHash String
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  conversations ConversationParticipant[]
+  messages      Message[]
+
+  @@map("users")
+}
+
+model Conversation {
+  id           String                    @id @default(uuid())
+  title        String?
+  isGroup      Boolean                   @default(false)
+  // Deterministic canonical key (e.g., "userIdA:userIdB" with sorted UUIDs).
+  // Guaranteed unique at the database level to prevent duplicate one-to-one conversations.
+  // Null for group conversations.
+  directKey    String?                   @unique
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  content        String       @db.Text
+  senderId       String
+  conversationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}

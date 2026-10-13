@@ -1,6 +1,7 @@
 import http from "http";
 import { createApp } from "./app";
 import { env } from "./config/env";
+import { prisma } from "./db";
 
 const startServer = () => {
   const app = createApp();
@@ -12,8 +13,13 @@ const startServer = () => {
     console.log(`[ChatFlow Server] Health check available at http://localhost:${env.PORT}/health`);
   });
 
-  const handleShutdown = (signal: string) => {
+  const handleShutdown = async (signal: string) => {
     console.log(`\n[ChatFlow Server] Received ${signal}. Gracefully shutting down...`);
+    try {
+      await prisma.$disconnect();
+    } catch (err) {
+      console.error("[ChatFlow Server] Error disconnecting Prisma:", err);
+    }
     server.close(() => {
       console.log("[ChatFlow Server] HTTP server closed.");
       process.exit(0);
