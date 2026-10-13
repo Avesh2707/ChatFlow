@@ -1,7 +1,9 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { env } from "./config/env";
 import { healthRouter } from "./routes/health.routes";
+import { authRouter } from "./routes/auth.routes";
 
 export const createApp = (): Application => {
   const app = express();
@@ -13,10 +15,12 @@ export const createApp = (): Application => {
       credentials: true,
     })
   );
+  app.use(cookieParser());
   app.use(express.json());
 
   // Routes
   app.use("/health", healthRouter);
+  app.use("/api/auth", authRouter);
 
   // 404 Not Found Handler
   app.use((req: Request, res: Response) => {
