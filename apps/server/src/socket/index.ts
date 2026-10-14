@@ -9,6 +9,7 @@ import {
   ClientToServerEvents,
   ServerToClientEvents,
   SafeMessage,
+  SafeUser,
 } from "./types";
 import {
   joinConversationSchema,
@@ -28,6 +29,23 @@ let ioInstance: Server<
   Record<string, never>,
   AuthenticatedSocketData
 > | null = null;
+
+// Map of userId -> Set of active socket IDs
+const userSockets = new Map<string, Set<string>>();
+
+/**
+ * Returns array of currently online user IDs.
+ */
+export const getOnlineUserIds = (): string[] => Array.from(userSockets.keys());
+
+/**
+ * Broadcasts user profile update event to all connected sockets.
+ */
+export const broadcastUserUpdate = (user: SafeUser): void => {
+  if (ioInstance) {
+    ioInstance.emit("user:updated", { user });
+  }
+};
 
 /**
  * Safely parses cookie strings into key-value pairs without external dependencies.
@@ -114,6 +132,44 @@ export const initSocketServer = (
   // Connection handler
   io.on("connection", (socket: ChatSocket) => {
     const userId = socket.data.userId;
+
+    // Track user socket connection (supporting multiple tabs/devices)
+    const existingSockets = userSockets.get(userId);
+    const isFirstConnection = !existingSockets || existingSockets.size === 0;
+
+    if (!existingSockets) {
+      userSockets.set(userId, new Set([socket.id]));
+    } else {
+      existingSockets.add(socket.id);
+    }
+
+    // Send immediate snapshot of current online users to this socket
+    socket.emit("presence:state", {
+      onlineUserIds: Array.from(userSockets.keys()),
+    });
+
+    // If first connection for this user, broadcast presence:online to all clients
+    if (isFirstConnection) {
+      io.emit("presence:online", { userId });
+    }
+
+    // Handle presence query from client
+    socket.on("presence:query", (ack) => {
+      ack?.({ onlineUserIds: Array.from(userSockets.keys()) });
+    });
+
+    // Handle disconnection cleanly
+    socket.on("disconnect", () => {
+      const sockets = userSockets.get(userId);
+      if (sockets) {
+        sockets.delete(socket.id);
+        if (sockets.size === 0) {
+          userSockets.delete(userId);
+          // Last active tab/connection closed -> mark user offline
+          io.emit("presence:offline", { userId });
+        }
+      }
+    });
 
     // Join conversation room handler
     socket.on("conversation:join", async (payload, ack) => {
@@ -214,6 +270,7 @@ export const initSocketServer = (
                 id: true,
                 name: true,
                 email: true,
+                avatar: true,
               },
             },
           },

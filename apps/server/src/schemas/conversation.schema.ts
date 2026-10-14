@@ -1,11 +1,17 @@
 import { z } from "zod";
 
-export const directConversationSchema = z.object({
-  recipientId: z
-    .string()
-    .trim()
-    .min(1, "Recipient ID is required"),
-});
+export const directConversationSchema = z
+  .object({
+    recipientId: z.string().trim().min(1).optional(),
+    recipientEmail: z.string().trim().email("Invalid recipient email").optional(),
+    email: z.string().trim().email("Invalid recipient email").optional(),
+  })
+  .refine(
+    (data) => Boolean(data.recipientId || data.recipientEmail || data.email),
+    {
+      message: "Either recipientId or recipientEmail is required",
+    }
+  );
 
 export const joinConversationSchema = z.object({
   conversationId: z

@@ -29,6 +29,7 @@ export const getConversations = async (
                 id: true,
                 name: true,
                 email: true,
+                avatar: true,
               },
             },
           },
@@ -81,23 +82,22 @@ export const createDirectConversation = async (
     return;
   }
 
-  const { recipientId } = result.data;
-
-  // Prevent user from starting a direct conversation with themselves
-  if (recipientId === currentUserId) {
-    res.status(400).json({
-      error: "Bad Request",
-      message: "Cannot create a direct conversation with yourself",
-    });
-    return;
-  }
+  const { recipientId, recipientEmail, email } = result.data;
+  const targetEmail = (recipientEmail || email)?.toLowerCase();
 
   try {
-    // Verify recipient user exists
-    const recipient = await prisma.user.findUnique({
-      where: { id: recipientId },
-      select: { id: true, name: true, email: true },
-    });
+    // Verify recipient user exists by ID or by email
+    const recipient = recipientId
+      ? await prisma.user.findUnique({
+          where: { id: recipientId },
+          select: { id: true, name: true, email: true, avatar: true },
+        })
+      : targetEmail
+      ? await prisma.user.findUnique({
+          where: { email: targetEmail },
+          select: { id: true, name: true, email: true, avatar: true },
+        })
+      : null;
 
     if (!recipient) {
       res.status(404).json({
@@ -107,8 +107,19 @@ export const createDirectConversation = async (
       return;
     }
 
+    const resolvedRecipientId = recipient.id;
+
+    // Prevent user from starting a direct conversation with themselves
+    if (resolvedRecipientId === currentUserId) {
+      res.status(400).json({
+        error: "Bad Request",
+        message: "Cannot create a direct conversation with yourself",
+      });
+      return;
+    }
+
     // Compute canonical deterministic key
-    const directKey = getDirectConversationKey(currentUserId, recipientId);
+    const directKey = getDirectConversationKey(currentUserId, resolvedRecipientId);
 
     // Check if conversation already exists
     const existing = await prisma.conversation.findUnique({
@@ -121,6 +132,7 @@ export const createDirectConversation = async (
                 id: true,
                 name: true,
                 email: true,
+                avatar: true,
               },
             },
           },
@@ -145,7 +157,7 @@ export const createDirectConversation = async (
           participants: {
             create: [
               { userId: currentUserId },
-              { userId: recipientId },
+              { userId: resolvedRecipientId },
             ],
           },
         },
@@ -157,6 +169,7 @@ export const createDirectConversation = async (
                   id: true,
                   name: true,
                   email: true,
+                  avatar: true,
                 },
               },
             },
@@ -184,6 +197,7 @@ export const createDirectConversation = async (
                     id: true,
                     name: true,
                     email: true,
+                    avatar: true,
                   },
                 },
               },
@@ -262,6 +276,7 @@ export const getConversationMessages = async (
             id: true,
             name: true,
             email: true,
+            avatar: true,
           },
         },
       },

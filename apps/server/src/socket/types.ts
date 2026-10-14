@@ -9,6 +9,7 @@ export interface SafeUser {
   id: string;
   name: string;
   email: string;
+  avatar?: string | null;
 }
 
 export interface SafeMessage {
@@ -35,6 +36,10 @@ export type SocketAckResponse<T = unknown> =
 
 export interface ServerToClientEvents {
   "message:new": (message: SafeMessage) => void;
+  "presence:state": (payload: { onlineUserIds: string[] }) => void;
+  "presence:online": (payload: { userId: string }) => void;
+  "presence:offline": (payload: { userId: string }) => void;
+  "user:updated": (payload: { user: SafeUser }) => void;
   error: (err: { message: string }) => void;
 }
 
@@ -47,4 +52,5 @@ export interface ClientToServerEvents {
     payload: SendMessagePayload,
     ack?: (res: SocketAckResponse<SafeMessage>) => void
   ) => void;
+  "presence:query": (ack?: (res: { onlineUserIds: string[] }) => void) => void;
 }

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, logout, getMe } from "../controllers/auth.controller";
+import { register, login, logout, getMe, updateProfile } from "../controllers/auth.controller";
 import { requireAuth } from "../middlewares/auth.middleware";
 import { validateOrigin } from "../middlewares/csrf.middleware";
 
@@ -10,5 +10,6 @@ authRouter.post("/register", validateOrigin, register);
 authRouter.post("/login", validateOrigin, login);
 authRouter.post("/logout", validateOrigin, logout);
 
-// Protected profile endpoint
+// Protected profile endpoints
 authRouter.get("/me", requireAuth, getMe);
+authRouter.patch("/me", requireAuth, validateOrigin, updateProfile);

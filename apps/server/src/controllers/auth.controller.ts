@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
-import { registerSchema, loginSchema } from "../schemas/auth.schema";
+import { registerSchema, loginSchema, updateProfileSchema } from "../schemas/auth.schema";
 import { hashPassword, comparePassword } from "../utils/password";
 import {
   signToken,
@@ -9,6 +9,7 @@ import {
   getAuthCookieOptions,
   getClearCookieOptions,
 } from "../utils/jwt";
+import { broadcastUserUpdate } from "../socket";
 
 /**
  * Register a new user account.
@@ -55,6 +56,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         id: true,
         name: true,
         email: true,
+        avatar: true,
         createdAt: true,
       },
     });
@@ -142,6 +144,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         id: user.id,
         name: user.name,
         email: user.email,
+        avatar: user.avatar,
         createdAt: user.createdAt,
       },
     });
@@ -183,6 +186,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
         id: true,
         name: true,
         email: true,
+        avatar: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -205,6 +209,66 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to retrieve user profile",
+    });
+  }
+};
+
+/**
+ * Update current authenticated user profile (display name, avatar).
+ * Validates input and guarantees user can only update their own record.
+ */
+export const updateProfile = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  if (!req.userId) {
+    res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required",
+    });
+    return;
+  }
+
+  const result = updateProfileSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({
+      error: "Validation Error",
+      message: "Invalid profile update data",
+      details: result.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const { name, avatar } = result.data;
+
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(avatar !== undefined && { avatar }),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    broadcastUserUpdate(updatedUser);
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (err: unknown) {
+    console.error("Update profile error:", err);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to update profile",
     });
   }
 };
