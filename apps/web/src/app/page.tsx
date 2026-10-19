@@ -12,6 +12,7 @@ import ProfileModal from "../components/ProfileModal";
 import { getAvatarBg, getInitials } from "../lib/utils";
 import { getStoredTheme, applyTheme, DEFAULT_THEME } from "../lib/theme";
 import { useToast } from "../components/Toast";
+import { getApiUrl } from "../lib/api";
 
 type ConnectionStatus = "connected" | "reconnecting" | "disconnected";
 
@@ -55,7 +56,7 @@ export default function Home() {
 
   const previousSocketStatus = useRef<ConnectionStatus>("disconnected");
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const apiUrl = getApiUrl();
 
   // Initialize theme from persistence
   useEffect(() => {
@@ -389,8 +390,17 @@ export default function Home() {
       });
     };
 
+    const onConnectError = (err: Error) => {
+      setSocketStatus("disconnected");
+      previousSocketStatus.current = "disconnected";
+      if (err.message && err.message.includes("Authentication error")) {
+        toastError("Socket authentication expired. Please refresh or re-login.");
+      }
+    };
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onConnectError);
     socket.on("message:new", onNewMessage);
     socket.on("presence:state", onPresenceState);
     socket.on("presence:online", onPresenceOnline);
@@ -406,6 +416,7 @@ export default function Home() {
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onConnectError);
       socket.off("message:new", onNewMessage);
       socket.off("presence:state", onPresenceState);
       socket.off("presence:online", onPresenceOnline);
@@ -413,7 +424,7 @@ export default function Home() {
       socket.off("user:updated", onUserUpdatedBroadcast);
       socket.io.off("reconnect_attempt", onReconnectAttempt);
     };
-  }, [currentUser, fetchConversations, success, warning]);
+  }, [currentUser, fetchConversations, success, warning, toastError]);
 
   useEffect(() => {
     if (currentUser) {

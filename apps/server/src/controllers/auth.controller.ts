@@ -5,6 +5,7 @@ import { registerSchema, loginSchema, updateProfileSchema } from "../schemas/aut
 import { hashPassword, comparePassword } from "../utils/password";
 import {
   signToken,
+  signSocketToken,
   AUTH_COOKIE_NAME,
   getAuthCookieOptions,
   getClearCookieOptions,
@@ -269,6 +270,58 @@ export const updateProfile = async (
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update profile",
+    });
+  }
+};
+
+/**
+ * Issues a dedicated, short-lived (60s) Socket.IO ticket for the authenticated user.
+ * Requires a valid HTTP-only session cookie (verified via requireAuth).
+ * Never exposes the session cookie or long-lived credentials.
+ */
+export const getSocketToken = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  if (!req.userId) {
+    res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required",
+    });
+    return;
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      res.clearCookie(AUTH_COOKIE_NAME, getClearCookieOptions());
+      res.status(401).json({
+        error: "Unauthorized",
+        message: "User account no longer exists",
+      });
+      return;
+    }
+
+    const socketToken = signSocketToken({
+      userId: user.id,
+      email: user.email,
+    });
+
+    // Cache-Control: no-store, private guarantees tickets are never cached by browsers or proxies
+    res.setHeader("Cache-Control", "no-store, private");
+    res.status(200).json({
+      token: socketToken,
+      expiresIn: 60,
+    });
+  } catch (err: unknown) {
+    console.error("GetSocketToken error:", err);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to generate socket connection ticket",
     });
   }
 };

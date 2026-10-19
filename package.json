@@ -5,6 +5,10 @@
   "workspaces": [
     "apps/*"
   ],
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "npm run dev --workspaces",
     "dev:web": "npm run dev --workspace=@chatflow/web",
@@ -12,9 +16,14 @@
     "build": "npm run build --workspaces --if-present",
     "build:web": "npm run build --workspace=@chatflow/web",
     "build:server": "npm run build --workspace=@chatflow/server",
+    "start:web": "npm run start --workspace=@chatflow/web",
+    "start:server": "npm run start --workspace=@chatflow/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "typecheck:web": "npm run typecheck --workspace=@chatflow/web",
     "typecheck:server": "npm run typecheck --workspace=@chatflow/server",
+    "test": "npm run test --workspaces --if-present",
+    "test:web": "npm run test --workspace=@chatflow/web",
+    "test:server": "npm run test --workspace=@chatflow/server",
     "prisma:generate": "npm run prisma:generate --workspace=@chatflow/server",
     "prisma:migrate": "npm run prisma:migrate --workspace=@chatflow/server",
     "prisma:deploy": "npm run prisma:deploy --workspace=@chatflow/server",

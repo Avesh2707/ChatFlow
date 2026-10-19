@@ -9,9 +9,9 @@ const startServer = () => {
   const server = http.createServer(app);
   initSocketServer(server);
 
-  server.listen(env.PORT, () => {
+  server.listen(env.PORT, "0.0.0.0", () => {
     console.log(`[ChatFlow Server] Running in ${env.NODE_ENV} mode`);
-    console.log(`[ChatFlow Server] Listening on http://localhost:${env.PORT}`);
+    console.log(`[ChatFlow Server] Listening on http://0.0.0.0:${env.PORT}`);
     console.log(`[ChatFlow Server] Health check available at http://localhost:${env.PORT}/health`);
   });
 

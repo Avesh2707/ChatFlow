@@ -2,7 +2,7 @@ import http from "http";
 import { Server, Socket } from "socket.io";
 import { env } from "../config/env";
 import { prisma } from "../db";
-import { AUTH_COOKIE_NAME, verifyToken } from "../utils/jwt";
+import { AUTH_COOKIE_NAME, verifyToken, verifySocketToken, JwtUserPayload } from "../utils/jwt";
 import { getNormalizedOrigin } from "../middlewares/csrf.middleware";
 import {
   AuthenticatedSocketData,
@@ -90,20 +90,48 @@ export const initSocketServer = (
     },
   });
 
-  // Socket authentication middleware: verifies HTTP-only auth_token cookie
+  // Socket authentication middleware: verifies dedicated short-lived socket ticket (auth payload)
+  // or falls back to HTTP-only auth_token cookie (for local development)
   io.use(async (socket, next) => {
     try {
-      const cookieHeader = socket.handshake.headers.cookie;
-      const cookies = parseCookies(cookieHeader);
-      const token = cookies[AUTH_COOKIE_NAME];
+      const authToken = socket.handshake.auth?.token;
+      let payload: JwtUserPayload | null = null;
 
-      if (!token) {
-        return next(
-          new Error("Authentication error: Missing authentication cookie")
-        );
+      if (authToken && typeof authToken === "string") {
+        try {
+          payload = verifySocketToken(authToken);
+        } catch (err: unknown) {
+          const msg =
+            err instanceof Error ? err.message : "Invalid socket ticket";
+          return next(new Error(`Authentication error: ${msg}`));
+        }
+      } else {
+        const cookieHeader = socket.handshake.headers.cookie;
+        const cookies = parseCookies(cookieHeader);
+        const cookieToken = cookies[AUTH_COOKIE_NAME];
+
+        if (!cookieToken) {
+          return next(
+            new Error(
+              "Authentication error: Missing authentication credentials"
+            )
+          );
+        }
+
+        try {
+          payload = verifyToken(cookieToken);
+        } catch (_err: unknown) {
+          return next(
+            new Error(
+              "Authentication error: Invalid or expired session cookie"
+            )
+          );
+        }
       }
 
-      const payload = verifyToken(token);
+      if (!payload) {
+        return next(new Error("Authentication error: Unauthorized"));
+      }
 
       // Verify user still exists in database
       const user = await prisma.user.findUnique({
@@ -124,7 +152,7 @@ export const initSocketServer = (
       next();
     } catch (_err: unknown) {
       return next(
-        new Error("Authentication error: Invalid or expired token")
+        new Error("Authentication error: Internal authentication failure")
       );
     }
   });
