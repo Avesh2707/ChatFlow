@@ -16,6 +16,49 @@
 
 ---
 
+## Screenshots
+
+<table width="100%">
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <a href="docs/screenshots/01-homepage.png">
+        <img src="docs/screenshots/01-homepage.png" alt="ChatFlow Homepage" width="100%" />
+      </a>
+      <br />
+      <strong>Homepage</strong>
+      <p>A clean landing page with quick access to sign in and account creation.</p>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <a href="docs/screenshots/02-chat-interface.png">
+        <img src="docs/screenshots/02-chat-interface.png" alt="ChatFlow Real-Time Chat Interface" width="100%" />
+      </a>
+      <br />
+      <strong>Real-Time Chat Interface</strong>
+      <p>A one-to-one conversation view with online presence, message history, and a message composer.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <a href="docs/screenshots/03-theme-gallery.png">
+        <img src="docs/screenshots/03-theme-gallery.png" alt="ChatFlow Theme Gallery" width="100%" />
+      </a>
+      <br />
+      <strong>Theme Gallery</strong>
+      <p>Browse and choose from 32 DaisyUI themes to personalize the interface.</p>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <a href="docs/screenshots/04-profile-settings.png">
+        <img src="docs/screenshots/04-profile-settings.png" alt="ChatFlow Profile Settings" width="100%" />
+      </a>
+      <br />
+      <strong>Profile Settings</strong>
+      <p>Customize the display name and choose from avatar presets or enter a custom image URL.</p>
+    </td>
+  </tr>
+</table>
+
+---
+
 ## Features
 
 - **Authentication & Security**:
