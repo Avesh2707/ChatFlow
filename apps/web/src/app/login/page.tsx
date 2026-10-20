@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "../../components/Toast";
@@ -13,6 +13,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isWakingUp, setIsWakingUp] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (loading) {
+      timer = setTimeout(() => {
+        setIsWakingUp(true);
+      }, 3500);
+    } else {
+      setIsWakingUp(false);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [loading]);
 
   const apiUrl = getApiUrl();
 
@@ -144,6 +159,25 @@ export default function LoginPage() {
               "Sign In"
             )}
           </button>
+
+          {isWakingUp && (
+            <div className="p-3 rounded-xl bg-info/10 border border-info/30 text-info text-xs flex items-start gap-2.5">
+              <svg
+                className="w-4 h-4 shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>Connecting to the server. The free hosting service may be waking up after inactivity — thank you for your patience!</span>
+            </div>
+          )}
         </form>
 
         {/* Footer Navigation */}

@@ -261,9 +261,10 @@ export const getConversationMessages = async (
       return;
     }
 
+    // Fetch the latest 100 messages descending by timestamp
     const messages = await prisma.message.findMany({
       where: { conversationId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       take: 100,
       select: {
         id: true,
@@ -281,6 +282,9 @@ export const getConversationMessages = async (
         },
       },
     });
+
+    // Reverse descending results so messages are returned in natural chronological order (oldest to newest of the latest 100)
+    messages.reverse();
 
     res.status(200).json({ messages });
   } catch (err: unknown) {
